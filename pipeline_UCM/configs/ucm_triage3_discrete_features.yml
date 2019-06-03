@@ -1,0 +1,680 @@
+config_version: 'v6'
+
+model_comment: 'DT_SLR_RF_better_imputations'
+
+user_metadata:
+  label_definition: 'retention'
+  experiment_type: 'daily ews'
+  description: 'Production Experiment Attempt'
+
+
+temporal_config:
+
+  feature_start_time: '1999-01-01'
+  feature_end_time: '2018-01-01'
+  label_start_time: '2008-01-01'
+  label_end_time: '2018-01-01'
+
+  model_update_frequency: '1y'
+  training_label_timespans: ['1y']
+  training_as_of_date_frequencies: '1day'
+
+  test_durations: '1y'
+  test_label_timespans: ['1y']
+  test_as_of_date_frequencies: '1day'
+
+  max_training_histories: '8y'
+
+label_config:
+  query: |
+    select
+        entity_id,
+        outcome::int as outcome,
+        '{as_of_date}'::timestamp as as_of_date,
+        '{label_timespan}' as label_timespan
+    from events_on_appt_dates_cs as events
+    where '{as_of_date}'::timestamp = outcome_date
+  include_missing_labels_in_train_as: True
+name: 'outcome_int'
+
+
+cohort_config:
+  query: |
+    SELECT
+       entity_id
+    FROM states_for_predicting_appts_only
+    WHERE '{as_of_date}'::timestamp = start_time
+  name: 'state'
+
+
+feature_aggregations:
+  -
+    prefix: 'demographics'
+    from_obj: 'features_cs.demographics'
+    knowledge_date_column: 'knowledge_date_column'
+
+    aggregates_imputation:
+      all:
+        type: 'constant'
+        value: 0
+
+    aggregates:
+      -
+        quantity:
+          age_bucket: "EXTRACT( YEAR FROM age('{collate_date}', date_of_birth))"
+        metrics: ['max']
+        imputation:
+          max:
+            type: 'mean'
+
+
+    categoricals:
+      -
+        column: 'race_id'
+        choices:
+          - '1'
+          - '2'
+          - '3'
+          - '4'
+          - '5'
+          - '6'
+          - '7'
+        metrics: ['max']
+
+        imputation:
+          max:
+            type: 'null_category'
+
+      -
+        column: 'ethnicity_id'
+        choices:
+          - '1'
+          - '2'
+          - '3'
+          - '4'
+        metrics: ['max']
+        imputation:
+          max:
+            type: 'null_category'
+
+      -
+        column: 'gender_id'
+        choices:
+          - 'male'
+        metrics: ['max']
+        imputation:
+          max:
+            type: 'null_category'
+
+    intervals:
+      - 'all'
+    groups:
+      - 'entity_id'
+
+  -
+    prefix: 'location'
+    from_obj: features_cs.location
+    knowledge_date_column: 'knowledge_date_column'
+    categoricals:
+      -
+        column: 'zip'
+        metrics: ['max']
+        imputation:
+          max:
+            type: 'null_category'
+        choice_query: 'select distinct zip from features_cs.location'
+    intervals:
+      - 'all'
+    groups:
+      - 'entity_id'
+
+  -
+    prefix: 'idprevappts'
+    from_obj: features_cs.id_appt
+    knowledge_date_column: 'date_col'
+
+    aggregates_imputation:
+      all:
+        type: 'zero'
+
+    aggregates:
+      -
+        quantity: 'completed'
+        metrics: ['sum']
+
+      -
+        quantity: 'cancelled'
+        metrics: ['sum']
+      -
+        quantity: 'noshow'
+        metrics: ['sum']
+      -
+        quantity: 'days_bn_appts'
+        metrics: ['avg','min','max']
+        imputation:
+          all:
+            type: 'constant'
+            value: 3650
+
+    intervals: ['6months', '1year', '3years', 'all']
+    groups:
+      - 'entity_id'
+
+  -
+    prefix: 'nonidprevappts'
+    from_obj: features_cs.appt
+    knowledge_date_column: 'date_col'
+    aggregates_imputation:
+      all:
+        type: 'zero'
+
+    aggregates:
+      -
+        quantity: 'completed'
+        metrics: ['sum']
+
+      -
+        quantity: 'cancelled'
+        metrics: ['sum']
+      -
+        quantity: 'noshow'
+        metrics: ['sum']
+      -
+        quantity: 'days_bn_appts'
+        metrics: ['avg','min','max']
+        imputation:
+          all:
+            type: 'constant'
+            value: 3650
+
+    intervals: ['6months', '1year', '3years', 'all']
+    groups:
+      - 'entity_id'
+
+  -
+    prefix: 'first_appt'
+    from_obj: features_cs.first_appt
+    knowledge_date_column: 'date_col'
+    aggregates_imputation:
+      all:
+        type: 'constant'
+        value: 0
+
+    aggregates:
+      -
+        quantity: 'first_appt_flag'
+        metrics: ['max']
+
+    intervals:
+      - '1day' # is current date the first appt?
+      - '6months' # acute phase
+
+
+    groups:
+      - 'entity_id'
+
+  -
+    prefix: 'hospital'
+    from_obj: features_cs.hospital_stays
+    knowledge_date_column: 'date_col'
+    aggregates_imputation:
+      all:
+        type: 'zero'
+    aggregates:
+      -
+        quantity: 'hospital'
+        metrics: ['sum']
+      -
+        quantity: 'id_provider_seen'
+        metrics: ['sum']
+    intervals:
+      - '6months'
+      - '1year'
+      - '3years'
+      - 'all'
+    groups:
+      - 'entity_id'
+  -
+    prefix: 'gis'
+    from_obj: features_cs.gis_toclinic
+    knowledge_date_column: 'knowledge_date_col'
+    aggregates_imputation:
+      all:
+        type: 'mean'
+    aggregates:
+      -
+        quantity: 'total_travel_time_public'
+        metrics: ['max']
+      -
+        quantity: 'crime_rate'
+        metrics: ['max']
+      -
+        quantity: 'total_length_miles'
+        metrics: ['max']
+      -
+        quantity: 'total_time_car'
+        metrics: ['max']
+    intervals:
+      - 'all'
+    groups:
+      - 'entity_id'
+  -
+    prefix: 'diag'
+    from_obj: features_cs.diagnoses
+    knowledge_date_column: 'date_col'
+    aggregates_imputation:
+      all:
+        type: 'zero'
+    aggregates:
+      -
+        quantity: 'psychiatric_illness'
+        metrics: ['sum','max'] #getting rid of max i believe this is just one
+      -
+        quantity: 'oi'
+        metrics: ['sum','max']
+      -
+        quantity: 'sti'
+        metrics: ['sum','max']
+      -
+        quantity: 'substance'
+        metrics: ['sum','max']
+      -
+        quantity: 'tox_pos'
+        metrics: ['sum','max']
+
+    categoricals:
+      -
+        column: 'ccs_cat'
+        choice_query: 'select distinct ccs_cat from features_cs.diagnoses'
+        metrics: ['max']
+        imputation:
+          all:
+            type: 'null_category'
+
+    intervals: ['6months', '1year', '3years', 'all']
+    groups:
+      - 'entity_id'
+
+  -
+    prefix: 'insurance'
+    from_obj: features_cs.insurance
+    knowledge_date_column: 'date_col'
+    aggregates_imputation:
+      all:
+        type: 'zero'
+    aggregates:
+      -
+        quantity: 'insurance_id'
+        metrics:
+          - 'count_distinct'
+          - 'dsapp_mode'
+    intervals:
+      - 'all'
+    groups:
+      - 'entity_id'
+
+  -
+    prefix: 'vl'
+    from_obj: features_cs.viral_load
+    knowledge_date_column: 'date_col'
+    aggregates_imputation:
+      all:
+        type: 'zero'
+    aggregates:
+
+      -
+        quantity: 'virally_supressed'
+        metrics: [ 'max', 'sum']
+
+      -
+        quantity: 'vl_bn_75_200'
+        metrics: [ 'max']
+      -
+        quantity: 'vl_bn_200_10k'
+        metrics: [ 'max']
+      -
+        quantity: 'vl_bn_10k_100k'
+        metrics: [ 'max']
+        imputation:
+          all:
+            type: 'constant'
+            value: 1
+      -
+        quantity: 'vl_gt_100k'
+        metrics: [ 'max', 'sum']
+      -
+        quantity: 'magnitude_change'
+        metrics: [ 'max', 'min','avg']
+    intervals: ['all', '6months', '1years', '3years']
+    groups:
+      - 'entity_id'
+  -
+    prefix: 'cd4'
+    from_obj: features_cs.cd4cd8_ratio
+    knowledge_date_column: 'date_col'
+    aggregates_imputation:
+      all:
+        type: 'zero'
+
+    aggregates:
+
+      -
+        quantity: 'aids'
+        metrics: ['max']
+      -
+        quantity: 'cd4_bn_200_500'
+        metrics: ['max']
+        imputation:
+          all:
+            type: 'constant'
+            value: 1
+
+      -
+        quantity: 'cd4_gt_500'
+        metrics: ['max']
+      -
+        quantity: 'cd4cd8_ratio_lt_1'
+        metrics: ['max']
+      -
+        quantity: 'cd4cd8_ratio_bn_1_2'
+        metrics: ['max']
+      -
+        quantity: 'cd4cd8_ratio_gt_2'
+        metrics: ['max']
+    intervals: ['all', '6months', '1years', '3years']
+    groups:
+      - 'entity_id'
+
+  -
+    prefix: 'meds'
+    from_obj: features_cs.meds
+    knowledge_date_column: 'date_col'
+    aggregates_imputation:
+      all:
+        type: 'zero'
+
+    aggregates:
+      -
+        quantity: 'med_other'
+        metrics: ['count_distinct']
+        choice_query: 'select distinct med_other from features_cs.meds'
+
+      -
+        quantity: 'med_art'
+        metrics: ['count_distinct']
+        choice_query: |
+          select distinct med_art
+          from features_cs.meds where med_art is not null
+
+      -
+        quantity: 'med_generic_art'
+        metrics: ['count_distinct']
+        choice_query: |
+          select distinct med_generic_art
+          from features_cs.meds where med_generic_art is not null
+
+
+      -
+        quantity: 'med_psych'
+        metrics: ['count_distinct']
+        choice_query: |
+          select distinct med_psych
+          from features_cs.meds where med_psych is not null
+
+
+      -
+        quantity: 'med_opioid'
+        metrics: ['count_distinct']
+        choice_query: |
+          select distinct med_opioid
+          from features_cs.meds where med_opioid is not null
+
+
+      -
+        quantity: 'med_oi'
+        metrics: ['count_distinct']
+        choice_query: |
+          select distinct med_oi
+          from features_cs.meds where med_oi is not null
+    intervals:  ['all', '6months', '1years', '3years']
+    groups:
+      - 'entity_id'
+
+  -
+    prefix: 'acs'
+    from_obj: features_cs.acs
+    knowledge_date_column: 'date_col'
+    aggregates_imputation:
+      all:
+        type: 'zero'
+    aggregates:
+      -
+        quantity: frac_black
+        metrics: ['max']
+      -
+        quantity: frac_native_born
+        metrics: ['max']
+      -
+        quantity: frac_mobility_same_house
+        metrics: ['max']
+      -
+        quantity: frac_with_ssisnap
+        metrics: ['max']
+
+      -
+        quantity: num_vehicles_to_work
+        metrics: ['max']
+      -
+        quantity: high_school
+        metrics: ['max']
+    intervals: ['1day']
+    groups: ['entity_id']
+
+  -
+    prefix: 'crime_ucm'
+    from_obj: features_cs.crimes
+    knowledge_date_column: 'date_col'
+    aggregates_imputation:
+      all:
+        type: 'zero'
+    aggregates:
+      -
+        quantity: crime_1yr
+        metrics: ['max']
+      -
+        quantity: theft_1yr
+        metrics: ['max']
+      -
+        quantity: narcotics_1yr
+        metrics: ['max']
+      -
+        quantity: arrest_1yr
+        metrics: ['max']
+      -
+        quantity: domestic_1yr
+        metrics: ['max']
+    intervals: ['1day']
+    groups: ['entity_id']
+
+  -
+    # Most common attendings, number of unique attendings
+    prefix: 'providers'
+    from_obj: features_cs.providers
+    knowledge_date_column: 'date_col'
+
+    categoricals:
+      -
+        column: 'provider_id'
+        choice_query: 'select distinct provider_id from features_cs.providers'
+        metrics:
+          - 'dsapp_mode'
+          - 'count_distinct'
+        imputation:
+          all:
+            type: 'null_category'
+    intervals: ['all', '6months', '1years', '3years']
+    groups:
+      - 'entity_id'
+
+
+  -
+    prefix: 'n_days_diagnoses'
+    from_obj: features_cs.n_days_first_appt
+    knowledge_date_column: 'date_col'
+    aggregates_imputation:
+      all:
+        type: 'zero'
+    aggregates:
+      -
+        quantity: 'n_days_first_appt'
+        metrics:
+          - 'max'
+
+    aggregates_imputation:
+      all:
+        type: 'constant'
+        value: 0
+
+    intervals: ['all']
+    groups:
+      - 'entity_id'
+
+  -
+    prefix: 'retention'
+    from_obj: features_cs.retention
+    knowledge_date_column: 'date_col'
+    aggregates_imputation:
+      all:
+        type: 'zero'
+    aggregates:
+      -
+        quantity: 'retained'
+        metrics: ['max']
+      -
+        quantity: 'total_days_retained'
+        metrics: ['max']
+      -
+        quantity: 'total_days_unretained'
+        metrics: ['max']
+      -
+        quantity: 'frac_retained'
+        metrics: ['max']
+      -
+        quantity: 'frac_unretained'
+        metrics: ['max']
+      -
+        quantity: 'n_changes_retention'
+        metrics: ['max']
+      -
+        quantity: 'n_drop_retention'
+        metrics: ['max']
+      -
+        quantity: 'consecutive_noretention'
+        metrics: ['max']
+      -
+        quantity: 'consecutive_retention'
+        metrics: ['max']
+      -
+        quantity: 'n_days_last_appt'
+        metrics: ['max']
+     # -
+     #   quantity: 'n_days_left_retention'
+     #   metrics: ['max']
+
+      -
+        quantity: 'started_retention'
+        metrics: ['max']
+
+    intervals:
+      - '1day'
+    groups:
+      - 'entity_id'
+
+
+
+
+grid_config:
+  'sklearn.ensemble.RandomForestClassifier':
+    n_estimators: [10,1000,5000]
+    max_depth: [null,2,5]
+    max_features: ['sqrt']
+    criterion: ['gini']
+    min_samples_split: [10]
+    min_samples_leaf: [0.01,0.025]
+    random_state: [2193]
+    n_jobs: [-1]
+  'sklearn.tree.DecisionTreeClassifier':
+    criterion: ['gini']
+    max_depth: [null,1,2,5,10]
+    min_samples_split: [10]
+    min_samples_leaf: [0.01,0.025,0.05,0.10]
+    random_state: [2193]
+  'triage.component.catwalk.estimators.classifiers.ScaledLogisticRegression':
+    C: [0.00001,0.001,0.1]
+    penalty: ['l1', 'l2']
+
+#  'xgboost.sklearn.XGBClassifier':
+#    n_estimators: [100,1000,5000]
+#    learning_rate: [0.001,0.01,0.05,0.1,0.5]
+#    subsample: [0.1,0.5,1.0]
+#    max_depth: [5,50]
+#    n_jobs: [-1]
+
+#  'sklearn.ensemble.AdaBoostClassifier':
+#    algorithm: ['SAMME.R']
+#    n_estimators: [5,10,100,1000,5000,10000]
+
+#  'sklearn.dummy.DummyClassifier':
+#    strategy: ['prior']
+
+#  'sklearn.ensemble.ExtraTreesClassifier':
+#    n_estimators: [10000] #[1000,5000]
+#    criterion: ['gini']
+#    max_depth: [5,null]
+#    max_features: ['sqrt']
+#    min_samples_split: [10]
+#    min_samples_leaf: [0.01,0.025]
+#    random_state: [2193]
+#    n_jobs: [-1]
+
+
+
+
+
+feature_group_definition:
+   prefix:
+     - 'hospital'
+     - 'demographics'
+     - 'location'
+     - 'idprevappts'
+     - 'nonidprevappts'
+     - 'first_appt'
+     - 'diag'
+     - 'insurance'
+     - 'vl'
+     - 'cd4'
+     - 'meds'
+     - 'providers'
+     - 'n_days_diagnoses'
+     - 'retention'
+     - 'acs'
+     - 'crime_ucm'
+
+feature_group_strategies: ['all']
+
+scoring:
+  sort_seed: 5
+  testing_metric_groups:
+    -
+      metrics: [precision@, recall@]
+      thresholds:
+        percentiles: [5.0, 10.0, 100.0]
+        top_n: [5, 10, 25]
+
+  training_metric_groups:
+
+    -
+      metrics: [precision@, recall@]
+      thresholds:
+        percentiles: [5.0, 10.0, 100.0]
+        top_n: [5, 10, 25]

@@ -1,0 +1,249 @@
+config_version: 'v6'
+
+model_comment: 'CDPH_6months_suppression_label'
+
+user_metadata:
+  label_definition: 'access'
+  experiment_type: 'biyearly test'
+  org: 'DSaPP'
+  team: 'HIV'
+  author: 'Avishek Kumar'
+  etl_date: '2019-02-21'
+
+
+temporal_config:
+
+  feature_start_time: '2041-01-01'
+  feature_end_time: '2047-01-02'
+  label_start_time: '2041-01-01'
+  label_end_time: '2047-01-02'
+
+  model_update_frequency: '1months'
+  training_label_timespans: ['6months']
+  training_as_of_date_frequencies: '1months'
+
+  test_durations: '0d'
+  test_label_timespans: ['6months']
+  test_as_of_date_frequencies: '1months'
+
+  max_training_histories: '8y'
+
+
+
+label_config:
+  query: |
+   select
+        entity_id,
+        outcome_vs_6mo as outcome,
+        '{as_of_date}'::timestamp as as_of_date,
+        '{label_timespan}' as label_timespan
+   from
+       events_cdph_suppression as events
+   where
+       '{as_of_date}'::timestamp = outcome_date
+  include_missing_labels_in_train_as: True
+  name: 'outcome_suppression_6months'
+
+
+cohort_config:
+  query: |
+    SELECT
+       entity_id
+    FROM states_cdph
+    WHERE '{as_of_date}'::timestamp >= start_time
+          and '{as_of_date}'::timestamp <= end_time
+  name: 'state_1year'
+
+
+feature_aggregations:
+  -
+    prefix: 'demographics'
+    from_obj: 'features_cdph.demographics'
+    knowledge_date_column: 'knowledge_date_col'
+
+    aggregates_imputation:
+      all:
+        type: 'constant'
+        value: 0
+
+    aggregates:
+      -
+        quantity:
+          age_bucket: "EXTRACT( YEAR FROM age('{collate_date}'::DATE, date_of_birth::DATE))"
+        metrics: ['max']
+        imputation:
+          max:
+            type: 'mean'
+
+
+    categoricals:
+      -
+        column: 'gender_id'
+        choices:
+          - 'male'
+          - 'female'
+          - 'transgender female'
+          - 'transgender male'
+        metrics: ['max']
+
+        imputation:
+          max:
+            type: 'null_category'
+
+    intervals:
+      - 'all'
+    groups:
+      - 'entity_id'
+
+  -
+    prefix: 'vl'
+    from_obj: 'features_cdph.viral_load'
+    knowledge_date_column: 'date_col'
+    aggregates_imputation:
+      all:
+        type: 'zero'
+    aggregates:
+      -
+        quantity: 'vl'
+        metrics: ['avg','min','max']
+
+    intervals: ['6months','1year','3years','all']
+    groups:
+      - 'entity_id'
+
+
+  -
+    prefix: 'cd4'
+    from_obj: 'features_cdph.cd4'
+    knowledge_date_column: 'date_col'
+    aggregates_imputation:
+      all:
+        type: 'zero'
+    aggregates:
+      -
+        quantity: 'cd4'
+        metrics: ['avg','min','max']
+
+    intervals: ['6months','1year','3years','all']
+    groups:
+      - 'entity_id'
+
+  -
+    prefix: 'vlprevappts'
+    from_obj: features_cdph.vl_appts
+    knowledge_date_column: 'date_col'
+
+    aggregates_imputation:
+      all:
+        type: zero
+
+    aggregates:
+      -
+        quantity: 'completed'
+        metrics: ['sum']
+
+      -
+        quantity: 'days_bn_appts'
+        metrics: ['avg','min','max']
+        imputation:
+          all:
+            type: 'constant'
+            value: 3650
+
+    intervals: ['6months','1year','3years','all']
+    groups:
+      - 'entity_id'
+
+
+
+grid_config:
+  'sklearn.ensemble.RandomForestClassifier':
+    n_estimators: [10]
+    max_depth: [null,5]
+    max_features: ['sqrt']
+    criterion: ['gini']
+    min_samples_split: [10]
+    min_samples_leaf: [0.01]
+    random_state: [2193]
+    n_jobs: [-1]
+  'sklearn.tree.DecisionTreeClassifier':
+    criterion: ['gini']
+    max_depth: [null,2,5]
+    min_samples_split: [10]
+    min_samples_leaf: [0.01]
+    random_state: [2193]
+#  'triage.component.catwalk.estimators.classifiers.ScaledLogisticRegression':
+#    C: [0.00001,0.001,0.1]
+#    penalty: ['l1', 'l2']
+
+#  'xgboost.sklearn.XGBClassifier':
+#    n_estimators: [100,1000,5000]
+#    learning_rate: [0.001,0.01,0.05,0.1,0.5]
+#    subsample: [0.1,0.5,1.0]
+#    max_depth: [5,50]
+#    n_jobs: [-1]
+
+#  'sklearn.ensemble.AdaBoostClassifier':
+#    algorithm: ['SAMME.R']
+#    n_estimators: [5,10,100,1000,5000,10000]
+
+#  'sklearn.dummy.DummyClassifier':
+#    strategy: ['prior']
+
+#  'sklearn.ensemble.ExtraTreesClassifier':
+#    n_estimators: [10000] #[1000,5000]
+#    criterion: ['gini']
+#    max_depth: [5,null]
+#    max_features: ['sqrt']
+#    min_samples_split: [10]
+#    min_samples_leaf: [0.01,0.025]
+#    random_state: [2193]
+#    n_jobs: [-1]
+
+
+
+feature_group_definition:
+   prefix:
+     - 'demographics'
+     - 'vl'
+     - 'cd4'
+     - 'vlprevappts'
+
+
+feature_group_strategies: ['all']
+
+model_group_keys:
+  - 'class_path'
+  - 'parameters'
+  - 'feature_names'
+  - 'feature_groups'
+  - 'cohort_name'
+  - 'state'
+  - 'label_name'
+  - 'label_timespan'
+  - 'training_as_of_date_frequency'
+  - 'max_training_history'
+  - 'label_definition'
+  - 'experiment_type'
+  - 'org'
+  - 'team'
+  - 'author'
+  - 'etl_date'
+
+
+scoring:
+  sort_seed: 5
+  testing_metric_groups:
+    -
+      metrics: [precision@, recall@]
+      thresholds:
+        percentiles: [1.0,2.0,5.0,10.0,15.0,20.0,25.0,50.0,100.0]
+        top_n: [10, 50, 100, 500]
+
+  training_metric_groups:
+
+    -
+      metrics: [precision@, recall@]
+      thresholds:
+        percentiles: [1.0,2.0,5.0,10.0,15.0,20.0,25.0,50.0,100.0]
+        top_n: [10, 50, 100, 500]

@@ -1,0 +1,163 @@
+inventory:
+  - file_name: simple_example.csv
+    table_name: sample_data
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/dr_10986_coded_diagnoses_cohort.csv
+    table_name: cohort_diagnoses
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/dr_10986_coded_diagnoses_diagnosis.csv
+    table_name: diagnosis_diagnoses
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/dr_10986_coded_diagnoses_encounter.csv
+    table_name: encounter_diagnoses
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/dr_10986_coded_diagnoses_lab.csv
+    table_name: lab_diagnoses
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/dr_10986_coded_diagnoses_problem.csv
+    table_name: problem_diagnoses
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/dr_10986_coded_diagnoses_problem_medication.csv
+    table_name: medication_diagnoses
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/dr_10986_coded_diagnoses_social.csv
+    table_name: social_diagnoses
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/ancillaryData_regex_CaseSensitive_Stem_Neg.csv
+    table_name: ancillarydata_regex_casesensitive_stem_neg
+    column_map:
+      "100%":
+        name: hundredpct
+        type: int
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/infectiousData_regex_CaseSensitive_Stem_Neg.csv
+    table_name: infectiousdata_regex_casesensitive_stem_neg
+    column_map:
+      "100%":
+        name: hundredpct
+        type: int
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/ancillaryData_regex_CaseSensitive_Stem_noNeg.csv
+    table_name: ancillarydata_regex_casesensitive_stem_noneg
+    column_map:
+      "100%":
+        name: hundredpct
+        type: int
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/infectiousData_regex_CaseSensitive_Stem_noNeg.csv
+    table_name: infectiousdata_regex_casesensitive_stem_noneg
+    column_map:
+      "100%":
+        name: hundredpct
+        type: int
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/ancillaryData_regex_CaseSensitive_noStem_Neg.csv
+    table_name: ancillarydata_regex_casesensitive_nostem_neg
+    column_map:
+      "100%":
+        name: hundredpct
+        type: int
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/infectiousData_regex_CaseSensitive_noStem_Neg.csv
+    table_name: infectiousdata_regex_casesensitive_nostem_neg
+    column_map:
+      "100%":
+        name: hundredpct
+        type: int
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/ancillaryData_regex_CaseSensitive_noStem_noNeg.csv
+    table_name: ancillarydata_regex_casesensitive_nostem_noneg
+    column_map:
+      "100%":
+        name: hundredpct
+        type: int
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/infectiousData_regex_CaseSensitive_noStem_noNeg.csv
+    table_name: infectiousdata_regex_casesensitive_nostem_noneg
+    column_map:
+      "100%":
+        name: hundredpct
+        type: int
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/ancillaryData_regex_noCaseSensitive_Stem_Neg.csv
+    table_name: ancillarydata_regex_nocasesensitive_stem_neg
+    column_map:
+      "100%":
+        name: hundredpct
+        type: int
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/infectiousData_regex_noCaseSensitive_Stem_Neg.csv
+    table_name: infectiousdata_regex_nocasesensitive_stem_neg
+    column_map:
+      "100%":
+        name: hundredpct
+        type: int
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/ancillaryData_regex_noCaseSensitive_Stem_noNeg.csv
+    table_name: ancillarydata_regex_nocasesensitive_stem_noneg
+    column_map:
+      "100%":
+        name: hundredpct
+        type: int
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/infectiousData_regex_noCaseSensitive_Stem_noNeg.csv
+    table_name: infectiousdata_regex_nocasesensitive_stem_noneg
+    column_map:
+      "100%":
+        name: hundredpct
+        type: int
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/ancillaryData_regex_noCaseSensitive_noStem_Neg.csv
+    table_name: ancillarydata_regex_nocasesensitive_nostem_neg
+    column_map:
+      "100%":
+        name: hundredpct
+        type: int
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/infectiousData_regex_noCaseSensitive_noStem_Neg.csv
+    table_name: infectiousdata_regex_nocasesensitive_nostem_neg
+    column_map:
+      "100%":
+        name: hundredpct
+        type: int
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/ancillaryData_regex_noCaseSensitive_noStem_noNeg.csv
+    table_name: ancillarydata_regex_nocasesensitive_nostem_noneg
+    column_map:
+      "100%":
+        name: hundredpct
+        type: int
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/infectiousData_regex_noCaseSensitive_noStem_noNeg.csv
+    table_name: infectiousdata_regex_nocasesensitive_nostem_noneg
+    column_map:
+      "100%":
+        name: hundredpct
+        type: int
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/gis_final.csv
+    table_name: gis_final
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/gis_for_todd.csv
+    table_name: gis_for_todd
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/gis_labs.csv
+    table_name: gis_labs
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/gis_rw.csv
+    table_name: gis_rw
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/nadir_cd4s.csv
+    table_name: nadir_cd4s
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/pharm_out.csv
+    table_name: pharm_out
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/social_hx.csv
+    table_name: social_hx
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/time2pharm.csv
+    table_name: time2pharm
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/viral_loads.csv
+    table_name: viral_loads
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/cta2pharm.csv
+    table_name: cta2pharm
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/dist2pharm.csv
+    table_name: dist2pharm
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/epic_addresschicago_allvar_fromtodd.csv
+    table_name: epic_adress
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/dx_history.csv
+    table_name: dx_history
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/dr_10986_appt_status.csv
+    table_name: appt_status
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/rw_mrns.csv
+    table_name: rw_mrns
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/final_mrns.csv
+    table_name: final_mrns
+  - file_name: /group/ridgway-lab/csvs/dr_10986_20170918_encounter_diagnoses.csv
+    table_name: encounter_diagnoses_20170918
+    column_map:
+      "BILL_NUM":
+        name: bill_num
+        type: float
+  - file_name: /group/ridgway-lab/HIV retention/dr_10986_20170918_diagnosis_info.csvv
+    table_name: diagnosis_diagnoses_20170918
+    column_map:
+      "BILL_NUM":
+        name: bill_num
+        type: float
+  - file_name: /group/dsapp-lab/extracted/UCM/csvs/dr_10986_appt_status_20170814.csv
+    table_name: appt_status_20170814
+    column_map:
+      "BILL_NUM":
+        name: bill_num
+        type: float

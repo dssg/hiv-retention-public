@@ -1,0 +1,255 @@
+config_version: 'v6'
+
+model_comment: 'ucm_access_6months_JSbaseline'
+
+user_metadata:
+  label_definition: 'retention'
+  experiment_type: 'daily ews'
+  description: 'Production Experiment Attempt'
+
+
+temporal_config:
+
+  feature_start_time: '1999-01-01'
+  feature_end_time: '2018-01-01'
+  label_start_time: '2008-01-01'
+  label_end_time: '2018-01-01'
+
+  model_update_frequency: '6months'
+  training_label_timespans: ['6months']
+  training_as_of_date_frequencies: '1day'
+
+  test_durations: '6months'
+  test_label_timespans: ['6months']
+  test_as_of_date_frequencies: '1day'
+
+  max_training_histories: '8y'
+
+label_config:
+  query: |
+    select
+        entity_id,
+        no_access_6mo as outcome,
+        '{as_of_date}'::timestamp as as_of_date,
+        '{label_timespan}' as label_timespan
+    from access_ucm_6months as events
+    where '{as_of_date}'::timestamp = outcome_date
+  include_missing_labels_in_train_as: True
+name: 'outcome_int'
+
+
+cohort_config:
+  query: |
+
+    SELECT
+       entity_id
+    FROM states_for_predicting_appts_only
+    WHERE '{as_of_date}'::timestamp = start_time
+  name: 'state'
+
+
+feature_aggregations:
+  -
+    prefix: 'expert_f'
+    from_obj: 'features_cs.expert'
+    knowledge_date_column: 'date_col'
+
+    aggregates_imputation:
+      all:
+        type: 'zero'
+
+    aggregates:
+      -
+        quantity: 'tox_pos'
+        metrics: ['max']
+
+    intervals:
+      - 'all'
+
+
+    groups:
+      - 'entity_id'
+
+  -
+    prefix: 'demographics'
+    from_obj: 'features_cs.demographics'
+    knowledge_date_column: 'knowledge_date_column'
+
+    aggregates_imputation:
+      all:
+        type: 'constant'
+        value: 0
+
+    aggregates:
+      -
+        quantity:
+          age: "EXTRACT( YEAR FROM age('{collate_date}', date_of_birth))"
+        metrics: ['max']
+        imputation:
+          max:
+            type: 'mean'
+
+
+    categoricals:
+      -
+        column: 'race_id'
+        choices:
+          - '1'
+          - '2'
+          - '3'
+          - '4'
+          - '5'
+          - '6'
+          - '7'
+        metrics: ['max']
+
+        imputation:
+          max:
+            type: 'null_category'
+
+      -
+        column: 'ethnicity_id'
+        choices:
+          - '1'
+          - '2'
+          - '3'
+          - '4'
+        metrics: ['max']
+        imputation:
+          max:
+            type: 'null_category'
+
+      -
+        column: 'gender_id'
+        choices:
+          - 'male'
+          - 'female'
+          - 'other'
+        metrics: ['max']
+        imputation:
+          max:
+            type: 'null_category'
+
+    intervals:
+      - 'all'
+    groups:
+      - 'entity_id'
+
+
+
+  -
+    prefix: 'diag'
+    from_obj: features_cs.diagnoses
+    knowledge_date_column: 'date_col'
+    aggregates_imputation:
+      all:
+        type: 'zero'
+
+    aggregates:
+      -
+        quantity: 'psychiatric_illness'
+        metrics: ['max']
+
+      -
+        quantity: 'substance'
+        metrics: ['max']
+
+
+    intervals:
+      - 'all'
+
+    groups:
+      - 'entity_id'
+
+
+  -
+    prefix: 'vl'
+    from_obj: features_cs.viral_load
+    knowledge_date_column: 'date_col'
+    aggregates_imputation:
+      all:
+        type: 'mean'
+    aggregates:
+      -
+        quantity: 'lab_result'
+        metrics: ['max']
+    intervals: ['all']
+    groups:
+      - 'entity_id'
+
+
+  -
+    prefix: 'n_days_diagnoses'
+    from_obj: features_cs.n_days_first_appt
+    knowledge_date_column: 'date_col'
+    aggregates:
+      -
+        quantity: 'n_days_first_appt'
+        metrics:
+          - 'max'
+    aggregates_imputation:
+      all:
+        type: 'constant'
+        value: 0
+
+    intervals: ['all']
+    groups:
+      - 'entity_id'
+
+
+grid_config:
+  'sklearn.tree.DecisionTreeClassifier':
+    criterion: ['gini']
+    max_depth: [null,1,2,3,4,5,6,7,8,9,10]
+    min_samples_split: [10,25]
+    min_samples_leaf: [0.01,0.025,0.05,0.10]
+    random_state: [2193]
+#  'sklearn.ensemble.RandomForestClassifier':
+#    n_estimators: [5,10,100,1000,2000,5000]
+#    max_depth: [2,5,10,null]
+#    max_features: ['sqrt','log2']
+#    criterion: ['entropy','gini']
+#    min_samples_split: [2,5,10,25]
+#    random_state: [2183]
+#  'sklearn.dummy.DummyClassifier':
+#    strategy: ['prior']
+#  'sklearn.ensemble.ExtraTreesClassifier':
+#    n_estimators: [100,1000,5000]
+ #   criterion: ['gini']
+ #   max_depth: [1, 5, 10,null]
+ #   max_features: ['sqrt', 'log2']
+ #   min_samples_split: [2, 5]
+  'triage.component.catwalk.estimators.classifiers.ScaledLogisticRegression':
+    C: [0.001, 0.01, 1]
+    penalty: ['l1', 'l2']
+
+
+
+
+feature_group_definition:
+   prefix:
+     - 'expert_f'
+     - 'demographics'
+     - 'diag'
+     - 'vl'
+     - 'n_days_diagnoses'
+#17 feature groups
+
+feature_group_strategies: ['all']
+
+scoring:
+  sort_seed: 5
+  testing_metric_groups:
+    -
+      metrics: [precision@, recall@]
+      thresholds:
+        percentiles: [5.0, 10.0, 100.0]
+        top_n: [5, 10, 25]
+
+  training_metric_groups:
+
+    -
+      metrics: [precision@, recall@]
+      thresholds:
+        percentiles: [5.0, 10.0, 100.0]
+        top_n: [5, 10, 25]
