@@ -77,7 +77,7 @@ make features
 ```
 
 # Experimental Setup
-The configuration for the experiments are done via the [configuration files](https://github.com/dssg/hiv-retention-private/tree/master/pipeline_CDPH/configs). These files describe the following features of the experiments:
+The configuration for the experiments are done via the [configuration files](https://github.com/dssg/hiv-retention-public/tree/master/pipeline_CDPH/configs). These files describe the following features of the experiments:
 
 ### What is the temporal structure of your problem? (`temporal_config`) 
 
